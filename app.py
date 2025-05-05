@@ -242,7 +242,7 @@ def admin():
               </li>
             {% endfor %}
             </ul>
-            <a href='/download/weine.csv'>📥 Gesamte Weine als CSV</a>
+            <a href='/download/vorlage.csv'>📥 Gesamte Weine als CSV</a>
         """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
 
     elif tab == "statistik":
@@ -253,17 +253,75 @@ def admin():
 
     return redirect("/admin?pw=1234&tab=verwaltung")
 
-@app.route("/download/weine.csv")
-def download_weine():
+@app.route("/download/vorlage.csv")
+def download_vorlage():
+    # Daten aus den CSV-Dateien lesen
     bestand = []
+    ausgaben = []
+
+    # "weine.csv" laden
     with open("weine.csv", newline="") as f:
         bestand = list(csv.DictReader(f))
 
-    out_file = "weine_statistik.csv"
-    with open(out_file, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Barcode", "Name", "Jahrgang", "Weingut", "Kontingent", "Menge"])
-        for row in bestand:
-            writer.writerow([row["barcode"], row["name"], row["jahrgang"], row["weingut"], row["kontingent"], row["menge"]])
+    # "ausgaben.csv" laden
+    with open("ausgaben.csv", newline="") as f:
+        ausgaben = list(csv.DictReader(f))
 
+    # Datenstruktur für die Berechnung vorbereiten
+    weine = {}
+    for row in bestand:
+        barcode = row["barcode"]
+        if barcode not in weine:
+            weine[barcode] = {
+                "name": row["name"],
+                "jahrgang": row["jahrgang"],
+                "weingut": row["weingut"],
+                "gesamt": 0,
+                "freie_ware": 0,
+                "kommissionsware": 0,
+                "verkauf": 0,
+                "winzer": 0,
+                "übrig": 0
+            }
+        menge = int(row["menge"])
+        weine[barcode]["gesamt"] += menge
+        if row["kontingent"] == "Freie Ware":
+            weine[barcode]["freie_ware"] += menge
+        elif row["kontingent"] == "Kommissionsware":
+            weine[barcode]["kommissionsware"] += menge
+
+    # Verkäufe und Winzerverbrauch hinzufügen
+    for row in ausgaben:
+        barcode = row["barcode"]
+        menge = int(row["menge"])
+        kategorie = row["kategorie"]
+        if barcode in weine:
+            if kategorie == "Verkauf":
+                weine[barcode]["verkauf"] += menge
+            elif kategorie == "Winzer":
+                weine[barcode]["winzer"] += menge
+
+    # Übrige Flaschen berechnen
+    for barcode, daten in weine.items():
+        daten["übrig"] = daten["gesamt"] - (daten["verkauf"] + daten["winzer"])
+
+    # CSV-Datei erstellen
+    out_file = "vorlage_export.csv"
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f, delimiter=";")
+        # Kopfzeile schreiben
+        writer.writerow([
+            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzal gelieferte Flaschen:",
+            'Gelieferte Flaschen "Freie Ware"', 'Gelieferte Flaschen "Kommisionsware"',
+            "Verkaufte Flaschen", "Von Winzern verbrauchte Flaschen", "Übrige Flaschen"
+        ])
+        # Daten schreiben
+        for daten in weine.values():
+            writer.writerow([
+                daten["name"], daten["jahrgang"], daten["weingut"], daten["gesamt"],
+                daten["freie_ware"], daten["kommissionsware"], daten["verkauf"],
+                daten["winzer"], daten["übrig"]
+            ])
+
+    # Datei zum Download bereitstellen
     return send_file(out_file, as_attachment=True)
