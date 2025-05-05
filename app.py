@@ -265,7 +265,7 @@ elif tab == "statistik":
     </ul>
     """, statistik=statistik, tabs=TAB_HTML)
 
-    elif tab == "weingueter":
+elif tab == "weingueter":
         ausgaben = []
         with open("ausgaben.csv", newline="") as f:
             ausgaben = list(csv.DictReader(f))
