@@ -1,4 +1,3 @@
-
 from flask import Flask, request, render_template_string, redirect, send_file
 import csv
 import os
@@ -10,12 +9,22 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# Sicherstellen, dass CSV-Dateien vorhanden sind
+for file, header in [
+    ("weine.csv", ["barcode", "name", "jahrgang", "weingut", "kontingent", "menge"]),
+    ("ausgaben.csv", ["datum", "barcode", "wein", "menge", "kontingent", "kategorie", "weingut"])
+]:
+    if not os.path.exists(file):
+        with open(file, "w", newline="") as f:
+            csv.writer(f).writerow(header)
+
 GITHUB_TOKEN = "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"
 REPO_OWNER = "LeonStahlwerk"
 REPO_NAME = "Weinlager-app"
 FILES = ["weine.csv", "ausgaben.csv"]
 
 KATEGORIEN = ["Winzer", "Verkauf"]
+KONTINGENTE = ["Freie Ware", "Kommissionsware"]
 
 def github_commit(file_path, commit_message):
     token = GITHUB_TOKEN
@@ -129,189 +138,79 @@ def scan(barcode):
         </form>
     """, wein=wein, kategorien=KATEGORIEN)
 
+@app.route("/download/vorlage.csv")
+def download_vorlage():
+    # Daten aus den CSV-Dateien lesen
+    bestand = []
+    ausgaben = []
+
+    # "weine.csv" laden
+    with open("weine.csv", newline="") as f:
+        bestand = list(csv.DictReader(f))
+
+    # "ausgaben.csv" laden
+    with open("ausgaben.csv", newline="") as f:
+        ausgaben = list(csv.DictReader(f))
+
+    # Datenstruktur für die Berechnung vorbereiten
+    weine = {}
+    for row in bestand:
+        barcode = row["barcode"]
+        if barcode not in weine:
+            weine[barcode] = {
+                "name": row["name"],
+                "jahrgang": row["jahrgang"],
+                "weingut": row["weingut"],
+                "gesamt": 0,
+                "freie_ware": 0,
+                "kommissionsware": 0,
+                "verkauf": 0,
+                "winzer": 0,
+                "übrig": 0
+            }
+        menge = int(row["menge"])
+        weine[barcode]["gesamt"] += menge
+        if row["kontingent"] == "Freie Ware":
+            weine[barcode]["freie_ware"] += menge
+        elif row["kontingent"] == "Kommissionsware":
+            weine[barcode]["kommissionsware"] += menge
+
+    # Verkäufe und Winzerverbrauch hinzufügen
+    for row in ausgaben:
+        barcode = row["barcode"]
+        menge = int(row["menge"])
+        kategorie = row["kategorie"]
+        if barcode in weine:
+            if kategorie == "Verkauf":
+                weine[barcode]["verkauf"] += menge
+            elif kategorie == "Winzer":
+                weine[barcode]["winzer"] += menge
+
+    # Übrige Flaschen berechnen
+    for barcode, daten in weine.items():
+        daten["übrig"] = daten["gesamt"]
+
+    # CSV-Datei erstellen
+    out_file = "vorlage_export.csv"
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f, delimiter=";")
+        # Kopfzeile schreiben
+        writer.writerow([
+            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzal gelieferte Flaschen:",
+            'Gelieferte Flaschen "Freie Ware"', 'Gelieferte Flaschen "Kommisionsware"',
+            "Verkaufte Flaschen", "Von Winzern verbrauchte Flaschen", "Übrige Flaschen"
+        ])
+        # Daten schreiben
+        for daten in weine.values():
+            writer.writerow([
+                daten["name"], daten["jahrgang"], daten["weingut"], daten["gesamt"],
+                daten["freie_ware"], daten["kommissionsware"], daten["verkauf"],
+                daten["winzer"], daten["übrig"]
+            ])
+
+    # Datei zum Download bereitstellen
+    return send_file(out_file, as_attachment=True)
+
 if __name__ == "__main__":
     threading.Thread(target=autosave, daemon=True).start()
     app.run(debug=True)
-
-
-# --- ADMIN-ERWEITERUNG ---
-
-
-# ACHTUNG: Dies ist der zweite Teil, der an die vorherige Datei angehängt werden muss.
-# Enthält Admin-Tabs, Statistik, Weingut-Analyse, Detailansicht und CSV-Log-Export
-
-from flask import Flask, request, render_template_string, redirect, send_file
-import csv, os, threading, time, base64, requests
-from datetime import datetime
-
-# (app und andere Funktionen aus Teil 1 bleiben wie definiert)
-
-TAB_HTML = """<div style='margin-bottom:1em'>
-  <a href='/admin?pw=1234&tab=verwaltung'>Verwaltung</a> |
-  <a href='/admin?pw=1234&tab=statistik'>Statistik</a> |
-  <a href='/admin?pw=1234&tab=weingueter'>Weingüter</a>
-</div><hr>"""
-
-@app.route("/admin", methods=["GET", "POST"])
-def admin():
-    if request.args.get("pw") != "1234":
-        return "Zugriff verweigert"
-
-    tab = request.args.get("tab", "verwaltung")
-    msg = ""
-
-    if tab == "verwaltung":
-        if request.method == "POST":
-            with open("weine.csv", "a", newline="") as f:
-                csv.writer(f).writerow([
-                    request.form["barcode"],
-                    request.form["name"],
-                    request.form["jahrgang"],
-                    request.form["weingut"],
-                    request.form["kontingent"],
-                    request.form["menge"]
-                ])
-            msg = "Wein gespeichert."
-
-        weine = {}
-        with open("weine.csv", newline="") as f:
-            for row in csv.DictReader(f):
-                code = row["barcode"]
-                if code not in weine:
-                    weine[code] = {
-                        "name": row["name"],
-                        "jahrgang": row["jahrgang"],
-                        "weingut": row["weingut"],
-                        "kontingente": {}
-                    }
-                weine[code]["kontingente"][row["kontingent"]] = row["menge"]
-
-        return render_template_string("""<h2>Verwaltung</h2>{{ tabs|safe }}<p>{{ msg }}</p>
-            <form method="post">
-              Barcode: <input name="barcode"><br>
-              Name: <input name="name"><br>
-              Jahrgang: <input name="jahrgang"><br>
-              Weingut: <input name="weingut"><br>
-              Kontingent: <input name="kontingent"><br>
-              Menge: <input name="menge"><br>
-              <button type="submit">Speichern</button>
-            </form>
-            <h3>Weine</h3>
-            <ul>
-            {% for code, w in weine.items() %}
-              <li><b>{{ w['name'] }}</b> – {{ w['weingut'] }} ({{ w['jahrgang'] }})
-                <ul>{% for k, m in w['kontingente'].items() %}
-                  <li>{{ k }}: {{ m }} Flaschen</li>
-                {% endfor %}</ul>
-              </li>
-            {% endfor %}
-            </ul>
-            <a href='/download/weine.csv'>📥 Gesamte Weine als CSV</a>
-        """, msg=msg, weine=weine, tabs=TAB_HTML)
-
-    elif tab == "statistik":
-        ausgaben = []
-        with open("ausgaben.csv", newline="") as f:
-            ausgaben = list(csv.DictReader(f))
-
-        statistik = {}
-        for row in ausgaben:
-            b = row["barcode"]
-            if b not in statistik:
-                statistik[b] = {"gesamt": 0, "kategorien": {}, "kontingente": {}}
-            m = int(row["menge"])
-            statistik[b]["gesamt"] += m
-            statistik[b]["kategorien"][row["kategorie"]] = statistik[b]["kategorien"].get(row["kategorie"], 0) + m
-            statistik[b]["kontingente"][row["kontingent"]] = statistik[b]["kontingente"].get(row["kontingent"], 0) + m
-
-        return render_template_string("""<h2>Statistik</h2>{{ tabs|safe }}
-        <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
-        {% for code, daten in statistik.items() %}
-          <div style='margin-bottom:40px;'>
-            <h3><a href="/wein/{{code}}">{{ code }}</a> – {{ daten['gesamt'] }} Flaschen</h3>
-            <canvas id="c{{loop.index}}" width="300" height="150"></canvas>
-            <script>
-              new Chart(document.getElementById("c{{loop.index}}"), {
-                type: 'pie',
-                data: {
-                  labels: {{ daten['kategorien'].keys()|list }},
-                  datasets: [{
-                    data: {{ daten['kategorien'].values()|list }},
-                    backgroundColor: ['#007bff', '#28a745']
-                  }]
-                }
-              });
-            </script>
-          </div>
-        {% endfor %}
-        """, statistik=statistik, tabs=TAB_HTML)
-
-    elif tab == "weingueter":
-        ausgaben = []
-        with open("ausgaben.csv", newline="") as f:
-            ausgaben = list(csv.DictReader(f))
-
-        weingueter = {}
-        for row in ausgaben:
-            w = row["weingut"]
-            m = int(row["menge"])
-            k = row["kategorie"]
-            if w not in weingueter:
-                weingueter[w] = {"gesamt": 0, "winzer": 0, "verkauf": 0}
-            weingueter[w]["gesamt"] += m
-            if k == "Winzer":
-                weingueter[w]["winzer"] += m
-            elif k == "Verkauf":
-                weingueter[w]["verkauf"] += m
-
-        return render_template_string("""<h2>Weingüter</h2>{{ tabs|safe }}
-        <ul>
-        {% for w, d in weingueter.items() %}
-          <li>{{ w }}: Gesamt {{ d['gesamt'] }} – Winzer {{ d['winzer'] }} – Verkauf {{ d['verkauf'] }}</li>
-        {% endfor %}
-        </ul>
-        """, weingueter=weingueter, tabs=TAB_HTML)
-
-@app.route("/wein/<barcode>")
-def wein_detail(barcode):
-    ausgaben = []
-    with open("ausgaben.csv", newline="") as f:
-        ausgaben = [r for r in csv.DictReader(f) if r["barcode"] == barcode]
-    if not ausgaben:
-        return "Keine Daten"
-    name = ausgaben[0]["wein"]
-    kategorien = {}
-    for r in ausgaben:
-        kategorien[r["kategorie"]] = kategorien.get(r["kategorie"], 0) + int(r["menge"])
-    return render_template_string("""<h2>{{ name }}</h2>
-      <a href='/admin?pw=1234&tab=statistik'>Zurück</a> |
-      <a href='/download-log/{{ barcode }}'>📥 Log Export</a>
-      <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
-      <canvas id='chart'></canvas>
-      <script>
-      new Chart(document.getElementById('chart'), {
-        type: 'pie',
-        data: {
-          labels: {{ kategorien.keys()|list }},
-          datasets: [{ data: {{ kategorien.values()|list }}, backgroundColor: ['#007bff', '#28a745'] }]
-        }
-      });
-      </script>
-      <ul>{% for r in ausgaben %}<li>{{ r['datum'] }} – {{ r['menge'] }} Flaschen – {{ r['kontingent'] }} / {{ r['kategorie'] }}</li>{% endfor %}</ul>
-    """, barcode=barcode, name=name, kategorien=kategorien, ausgaben=ausgaben)
-
-@app.route("/download/<filename>")
-def download_file(filename):
-    return send_file(filename, as_attachment=True)
-
-@app.route("/download-log/<barcode>")
-def download_log(barcode):
-    out = f"log_{barcode}.csv"
-    with open("ausgaben.csv", newline="") as f, open(out, "w", newline="") as w:
-        reader = csv.DictReader(f)
-        writer = csv.DictWriter(w, fieldnames=reader.fieldnames)
-        writer.writeheader()
-        for row in reader:
-            if row["barcode"] == barcode:
-                writer.writerow(row)
-    return send_file(out, as_attachment=True)
