@@ -1,4 +1,3 @@
-
 from flask import Flask, request, render_template_string, redirect, send_file
 import csv
 import os
@@ -7,7 +6,6 @@ import time
 import base64
 import requests
 from datetime import datetime
-
 
 app = Flask(__name__)
 
@@ -19,7 +17,6 @@ for file, header in [
     if not os.path.exists(file):
         with open(file, "w", newline="") as f:
             csv.writer(f).writerow(header)
-    
 
 GITHUB_TOKEN = "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"
 REPO_OWNER = "LeonStahlwerk"
@@ -144,18 +141,7 @@ if __name__ == "__main__":
     threading.Thread(target=autosave, daemon=True).start()
     app.run(debug=True)
 
-
 # --- ADMIN TABS ---
-
-
-# ACHTUNG: Dies ist der zweite Teil, der an die vorherige Datei angehängt werden muss.
-# Enthält Admin-Tabs, Statistik, Weingut-Analyse, Detailansicht und CSV-Log-Export
-
-from flask import Flask, request, render_template_string, redirect, send_file
-import csv, os, threading, time, base64, requests
-from datetime import datetime
-
-# (app und andere Funktionen aus Teil 1 bleiben wie definiert)
 
 TAB_HTML = """<div style='margin-bottom:1em'>
   <a href='/admin?pw=1234&tab=verwaltung'>Verwaltung</a> |
@@ -199,22 +185,22 @@ def admin():
 
         return render_template_string("""<h2>Verwaltung</h2>{{ tabs|safe }}<p>{{ msg }}</p>
             <form method="post">
-                Barcode: <input name="barcode"><br>
-                Name: <input name="name"><br>
-                Jahrgang: <input name="jahrgang"><br>
-                Weingut: <input name="weingut"><br>
-                Kontingent: <input name="kontingent"><br>
-                Menge: <input name="menge"><br>
-                <button type="submit">Speichern</button>
+              Barcode: <input name="barcode"><br>
+              Name: <input name="name"><br>
+              Jahrgang: <input name="jahrgang"><br>
+              Weingut: <input name="weingut"><br>
+              Kontingent: <input name="kontingent"><br>
+              Menge: <input name="menge"><br>
+              <button type="submit">Speichern</button>
             </form>
             <h3>Weine</h3>
             <ul>
             {% for code, w in weine.items() %}
-                <li><b>{{ w['name'] }}</b> – {{ w['weingut'] }} ({{ w['jahrgang'] }})
-                    <ul>{% for k, m in w['kontingente'].items() %}
-                        <li>{{ k }}: {{ m }} Flaschen</li>
-                    {% endfor %}</ul>
-                </li>
+              <li><b>{{ w['name'] }}</b> – {{ w['weingut'] }} ({{ w['jahrgang'] }})
+                <ul>{% for k, m in w['kontingente'].items() %}
+                  <li>{{ k }}: {{ m }} Flaschen</li>
+                {% endfor %}</ul>
+              </li>
             {% endfor %}
             </ul>
             <a href='/download/weine.csv'>📥 Gesamte Weine als CSV</a>
@@ -224,12 +210,10 @@ def admin():
         ausgaben = []
         bestand = {}
 
-        # Bestand aus "weine.csv" laden
         with open("weine.csv", newline="") as f:
             for row in csv.DictReader(f):
                 bestand[row["barcode"]] = int(row["menge"])
 
-        # Ausgaben aus "ausgaben.csv" analysieren
         with open("ausgaben.csv", newline="") as f:
             ausgaben = list(csv.DictReader(f))
 
@@ -265,31 +249,31 @@ def admin():
         </ul>
         """, statistik=statistik, tabs=TAB_HTML)
 
-elif tab == "weingueter":
-    ausgaben = []
-    with open("ausgaben.csv", newline="") as f:
-        ausgaben = list(csv.DictReader(f))
+    elif tab == "weingueter":
+        ausgaben = []
+        with open("ausgaben.csv", newline="") as f:
+            ausgaben = list(csv.DictReader(f))
 
-    weingueter = {}
-    for row in ausgaben:
-        w = row["weingut"]
-        m = int(row["menge"])
-        k = row["kategorie"]
-        if w not in weingueter:
-            weingueter[w] = {"gesamt": 0, "winzer": 0, "verkauf": 0}
-        weingueter[w]["gesamt"] += m
-        if k == "Winzer":
-            weingueter[w]["winzer"] += m
-        elif k == "Verkauf":
-            weingueter[w]["verkauf"] += m
+        weingueter = {}
+        for row in ausgaben:
+            w = row["weingut"]
+            m = int(row["menge"])
+            k = row["kategorie"]
+            if w not in weingueter:
+                weingueter[w] = {"gesamt": 0, "winzer": 0, "verkauf": 0}
+            weingueter[w]["gesamt"] += m
+            if k == "Winzer":
+                weingueter[w]["winzer"] += m
+            elif k == "Verkauf":
+                weingueter[w]["verkauf"] += m
 
-    return render_template_string("""<h2>Weingüter</h2>{{ tabs|safe }}
-    <ul>
-    {% for w, d in weingueter.items() %}
-      <li>{{ w }}: Gesamt {{ d['gesamt'] }} – Winzer {{ d['winzer'] }} – Verkauf {{ d['verkauf'] }}</li>
-    {% endfor %}
-    </ul>
-    """, weingueter=weingueter, tabs=TAB_HTML)
+        return render_template_string("""<h2>Weingüter</h2>{{ tabs|safe }}
+        <ul>
+        {% for w, d in weingueter.items() %}
+          <li>{{ w }}: Gesamt {{ d['gesamt'] }} – Winzer {{ d['winzer'] }} – Verkauf {{ d['verkauf'] }}</li>
+        {% endfor %}
+        </ul>
+        """, weingueter=weingueter, tabs=TAB_HTML)
 
 @app.route("/wein/<barcode>")
 def wein_detail(barcode):
