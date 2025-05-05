@@ -238,6 +238,8 @@ def admin():
                     }
                 weine[code]["kontingente"][row["kontingent"]] = row["menge"]
 
+return render_template_string("""
+
             <table >
                 <thead >
                     <tr>
@@ -260,6 +262,8 @@ def admin():
                                 {% for k, m in w['kontingente'].items() %}
                                 <li>{{ k }}: {{ m }} Flaschen</li>
                                 {% endfor %}
+""", weine=weine)
+
                             </ul>
                         </td>
                     </tr>
