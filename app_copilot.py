@@ -18,13 +18,13 @@ for file, header in [
         with open(file, "w", newline="") as f:
             csv.writer(f).writerow(header)
 
-# App logic from app.py starts here
 GITHUB_TOKEN = "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"
 REPO_OWNER = "LeonStahlwerk"
 REPO_NAME = "Weinlager-app"
 FILES = ["weine.csv", "ausgaben.csv"]
 
 KATEGORIEN = ["Winzer", "Verkauf"]
+KONTINGENTE = ["Freie Ware", "Kommissionsware"]
 
 def github_commit(file_path, commit_message):
     token = GITHUB_TOKEN
@@ -56,7 +56,29 @@ def autosave():
 
 @app.route("/")
 def home():
-    return redirect("/scanform")
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weinlager App</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 text-gray-800">
+        <nav class="bg-blue-500 p-4 text-white">
+            <div class="container mx-auto flex justify-between">
+                <div>
+                    <a href="/scanform" class="mr-4 hover:underline">Scan</a>
+                    <a href="/admin?pw=1234&tab=verwaltung" class="mr-4 hover:underline">Verwaltung</a>
+                    <a href="/admin?pw=1234&tab=statistik" class="hover:underline">Statistik</a>
+                </div>
+            </div>
+        </nav>
+        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
+    </body>
+    </html>
+    """)
 
 @app.route("/scanform", methods=["GET", "POST"])
 def scanform():
@@ -65,9 +87,15 @@ def scanform():
         return redirect(f"/scan/{barcode}")
     return render_template_string("""
         <h2>Barcode scannen oder eingeben</h2>
-        <form method="post">
-            <input name="barcode" placeholder="Barcode" autofocus>
-            <button type="submit">Weiter</button>
+        <form method="post" class="space-y-4 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-10">
+            <div>
+                <label for="barcode" class="block text-gray-700 font-medium">Barcode</label>
+                <input name="barcode" id="barcode" type="text" placeholder="Barcode scannen oder eingeben"
+                       class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" autofocus>
+            </div>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Weiter
+            </button>
         </form>
     """)
 
@@ -138,8 +166,78 @@ def scan(barcode):
         </form>
     """, wein=wein, kategorien=KATEGORIEN)
 
-# Rest of the admin and additional logic follows
-# (e.g., admin, statistics, wine details, etc.)
+@app.route("/download/vorlage.csv")
+def download_vorlage():
+    # Daten aus den CSV-Dateien lesen
+    bestand = []
+    ausgaben = []
+
+    # "weine.csv" laden
+    with open("weine.csv", newline="") as f:
+        bestand = list(csv.DictReader(f))
+
+    # "ausgaben.csv" laden
+    with open("ausgaben.csv", newline="") as f:
+        ausgaben = list(csv.DictReader(f))
+
+    # Datenstruktur für die Berechnung vorbereiten
+    weine = {}
+    for row in bestand:
+        barcode = row["barcode"]
+        if barcode not in weine:
+            weine[barcode] = {
+                "name": row["name"],
+                "jahrgang": row["jahrgang"],
+                "weingut": row["weingut"],
+                "gesamt": 0,
+                "freie_ware": 0,
+                "kommissionsware": 0,
+                "verkauf": 0,
+                "winzer": 0,
+                "übrig": 0
+            }
+        menge = int(row["menge"])
+        weine[barcode]["gesamt"] += menge
+        if row["kontingent"] == "Freie Ware":
+            weine[barcode]["freie_ware"] += menge
+        elif row["kontingent"] == "Kommissionsware":
+            weine[barcode]["kommissionsware"] += menge
+
+    # Verkäufe und Winzerverbrauch hinzufügen
+    for row in ausgaben:
+        barcode = row["barcode"]
+        menge = int(row["menge"])
+        kategorie = row["kategorie"]
+        if barcode in weine:
+            if kategorie == "Verkauf":
+                weine[barcode]["verkauf"] += menge
+            elif kategorie == "Winzer":
+                weine[barcode]["winzer"] += menge
+
+    # Übrige Flaschen berechnen
+    for barcode, daten in weine.items():
+        daten["übrig"] = daten["gesamt"] - (daten["verkauf"] + daten["winzer"])
+
+    # CSV-Datei erstellen
+    out_file = "vorlage_export.csv"
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f, delimiter=";")
+        # Kopfzeile schreiben
+        writer.writerow([
+            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzahl gelieferte Flaschen:",
+            'Gelieferte Flaschen "Freie Ware"', 'Gelieferte Flaschen "Kommisionsware"',
+            "Verkaufte Flaschen", "Von Winzern verbrauchte Flaschen", "Übrige Flaschen"
+        ])
+        # Daten schreiben
+        for daten in weine.values():
+            writer.writerow([
+                daten["name"], daten["jahrgang"], daten["weingut"], daten["gesamt"],
+                daten["freie_ware"], daten["kommissionsware"], daten["verkauf"],
+                daten["winzer"], daten["übrig"]
+            ])
+
+    # Datei zum Download bereitstellen
+    return send_file(out_file, as_attachment=True)
 
 if __name__ == "__main__":
     threading.Thread(target=autosave, daemon=True).start()
