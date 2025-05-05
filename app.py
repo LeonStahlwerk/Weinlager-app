@@ -78,8 +78,12 @@ def scanform():
         return redirect(f"/scan/{barcode}")
     return render_template_string("""
         <h2>Barcode scannen oder eingeben</h2>
-        <form method="post">
-            <input name="barcode" placeholder="Barcode" autofocus>
+        <form method="post" class="space-y-4 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-10">
+            <div>
+                <label for="barcode" class="block text-gray-700 font-medium">Barcode</label>
+                <input name="barcode" id="barcode" type="text" placeholder="Barcode scannen oder eingeben"
+                       class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" autofocus>
+            </div>
             <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                 Weiter
             </button>
