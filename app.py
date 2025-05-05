@@ -239,7 +239,6 @@ def admin():
                     }
                 weine[code]["kontingente"][row["kontingent"]] = row["menge"]
 
-render_template_string("""
             <table class="min-w-full bg-white rounded-lg shadow-md">
                 <thead class="bg-gray-200">
                     <tr>
@@ -249,7 +248,6 @@ render_template_string("""
                         <th class="px-6 py-3 text-left text-gray-700 font-medium">Weingut</th>
                         <th class="px-6 py-3 text-left text-gray-700 font-medium">Kontingente</th>
                     </tr>
-""")
                 </thead>
                 <tbody>
                     {% for code, w in weine.items() %}
@@ -315,7 +313,7 @@ def edit_wine(barcode):
 
         return redirect("/admin?pw=1234&tab=verwaltung")
 
-      return render_template_string(
+    return render_template_string(
         """
         <h2>Wein bearbeiten</h2>
         <form method="post">
@@ -336,7 +334,6 @@ def edit_wine(barcode):
         wein=wein,
         kontingente=KONTINGENTE,
     )
-
 @app.route("/download/vorlage.csv")
 def download_vorlage():
     # Daten aus den CSV-Dateien lesen
@@ -409,4 +406,3 @@ def download_vorlage():
 
     # Datei zum Download bereitstellen
     return send_file(out_file, as_attachment=True)
-"""
