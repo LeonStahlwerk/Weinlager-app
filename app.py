@@ -267,7 +267,7 @@ def admin():
                     {% endfor %}
                 </tbody>
             </table>
-            <a href='/download/vorlage.csv'>📥 Gesamte Weine als CSV</a>
+            <a href='/download/vorlage.csv'>Gesamte Weine als CSV herunterladen</a>
         """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
 
     elif tab == "statistik":
