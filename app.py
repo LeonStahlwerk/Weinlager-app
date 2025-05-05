@@ -313,7 +313,8 @@ def edit_wine(barcode):
 
         return redirect("/admin?pw=1234&tab=verwaltung")
 
-    return render_template_string("""
+    return render_template_string(
+        """
         <h2>Wein bearbeiten</h2>
         <form method="post">
             Name: <input name="name" value="{{ wein['name'] }}"><br>
@@ -329,8 +330,10 @@ def edit_wine(barcode):
             <button type="submit">Speichern</button>
         </form>
         <a href='/admin?pw=1234&tab=verwaltung'>Zurück</a>
-    """, wein=wein, kontingente=KONTINGENTE)
-
+        """,
+        wein=wein,
+        kontingente=KONTINGENTE,
+    )
 @app.route("/download/vorlage.csv")
 def download_vorlage():
     # Daten aus den CSV-Dateien lesen
