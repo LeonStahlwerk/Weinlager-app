@@ -266,30 +266,30 @@ elif tab == "statistik":
     """, statistik=statistik, tabs=TAB_HTML)
 
 elif tab == "weingueter":
-        ausgaben = []
-        with open("ausgaben.csv", newline="") as f:
-            ausgaben = list(csv.DictReader(f))
+    ausgaben = []
+    with open("ausgaben.csv", newline="") as f:
+        ausgaben = list(csv.DictReader(f))
 
-        weingueter = {}
-        for row in ausgaben:
-            w = row["weingut"]
-            m = int(row["menge"])
-            k = row["kategorie"]
-            if w not in weingueter:
-                weingueter[w] = {"gesamt": 0, "winzer": 0, "verkauf": 0}
-            weingueter[w]["gesamt"] += m
-            if k == "Winzer":
-                weingueter[w]["winzer"] += m
-            elif k == "Verkauf":
-                weingueter[w]["verkauf"] += m
+    weingueter = {}
+    for row in ausgaben:
+        w = row["weingut"]
+        m = int(row["menge"])
+        k = row["kategorie"]
+        if w not in weingueter:
+            weingueter[w] = {"gesamt": 0, "winzer": 0, "verkauf": 0}
+        weingueter[w]["gesamt"] += m
+        if k == "Winzer":
+            weingueter[w]["winzer"] += m
+        elif k == "Verkauf":
+            weingueter[w]["verkauf"] += m
 
-        return render_template_string("""<h2>Weingüter</h2>{{ tabs|safe }}
-        <ul>
-        {% for w, d in weingueter.items() %}
-          <li>{{ w }}: Gesamt {{ d['gesamt'] }} – Winzer {{ d['winzer'] }} – Verkauf {{ d['verkauf'] }}</li>
-        {% endfor %}
-        </ul>
-        """, weingueter=weingueter, tabs=TAB_HTML)
+    return render_template_string("""<h2>Weingüter</h2>{{ tabs|safe }}
+    <ul>
+    {% for w, d in weingueter.items() %}
+      <li>{{ w }}: Gesamt {{ d['gesamt'] }} – Winzer {{ d['winzer'] }} – Verkauf {{ d['verkauf'] }}</li>
+    {% endfor %}
+    </ul>
+    """, weingueter=weingueter, tabs=TAB_HTML)
 
 @app.route("/wein/<barcode>")
 def wein_detail(barcode):
