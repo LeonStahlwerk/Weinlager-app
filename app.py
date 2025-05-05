@@ -80,7 +80,9 @@ def scanform():
         <h2>Barcode scannen oder eingeben</h2>
         <form method="post">
             <input name="barcode" placeholder="Barcode" autofocus>
-            <button type="submit">Weiter</button>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Weiter
+            </button>
         </form>
     """)
 
