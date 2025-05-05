@@ -256,6 +256,50 @@ def admin():
 
     return redirect("/admin?pw=1234&tab=verwaltung")
 
+@app.route("/edit/<barcode>", methods=["GET", "POST"])
+def edit_wine(barcode):
+    # Daten aus der CSV lesen
+    weine = []
+    with open("weine.csv", newline="") as f:
+        weine = list(csv.DictReader(f))
+    
+    # Wein suchen
+    wein = next((row for row in weine if row["barcode"] == barcode), None)
+    if not wein:
+        return "Wein nicht gefunden."
+
+    if request.method == "POST":
+        # Neue Werte aus dem Formular übernehmen
+        wein["name"] = request.form["name"]
+        wein["jahrgang"] = request.form["jahrgang"]
+        wein["weingut"] = request.form["weingut"]
+        wein["kontingent"] = request.form["kontingent"]
+        wein["menge"] = request.form["menge"]
+
+        # CSV aktualisieren
+        with open("weine.csv", "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["barcode", "name", "jahrgang", "weingut", "kontingent", "menge"])
+            writer.writeheader()
+            writer.writerows(weine)
+
+        return redirect("/admin?pw=1234&tab=verwaltung")
+
+    return render_template_string("""
+        <h2>Wein bearbeiten</h2>
+        <form method="post">
+            Name: <input name="name" value="{{ wein['name'] }}"><br>
+            Jahrgang: <input name="jahrgang" value="{{ wein['jahrgang'] }}"><br>
+            Weingut: <input name="weingut" value="{{ wein['weingut'] }}"><br>
+            Kontingent: 
+            <select name="kontingent">
+                {% for k in kontingente %}<option value="{{k}}" {% if wein['kontingent'] == k %}selected{% endif %}>{{k}}</option>{% endfor %}
+            </select><br>
+            Menge: <input name="menge" type="number" value="{{ wein['menge'] }}"><br><br>
+            <button type="submit">Speichern</button>
+        </form>
+        <a href='/admin?pw=1234&tab=verwaltung'>Zurück</a>
+    """, wein=wein, kontingente=KONTINGENTE)
+
 @app.route("/download/vorlage.csv")
 def download_vorlage():
     # Daten aus den CSV-Dateien lesen
