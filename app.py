@@ -239,6 +239,7 @@ def admin():
                     }
                 weine[code]["kontingente"][row["kontingent"]] = row["menge"]
 
+render_template_string("""
             <table class="min-w-full bg-white rounded-lg shadow-md">
                 <thead class="bg-gray-200">
                     <tr>
@@ -248,6 +249,7 @@ def admin():
                         <th class="px-6 py-3 text-left text-gray-700 font-medium">Weingut</th>
                         <th class="px-6 py-3 text-left text-gray-700 font-medium">Kontingente</th>
                     </tr>
+""")
                 </thead>
                 <tbody>
                     {% for code, w in weine.items() %}
