@@ -313,7 +313,7 @@ def edit_wine(barcode):
 
         return redirect("/admin?pw=1234&tab=verwaltung")
 
-    return render_template_string(
+      return render_template_string(
         """
         <h2>Wein bearbeiten</h2>
         <form method="post">
@@ -334,6 +334,7 @@ def edit_wine(barcode):
         wein=wein,
         kontingente=KONTINGENTE,
     )
+
 @app.route("/download/vorlage.csv")
 def download_vorlage():
     # Daten aus den CSV-Dateien lesen
