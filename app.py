@@ -276,6 +276,13 @@ def edit_wine(barcode):
         wein["kontingent"] = request.form["kontingent"]
         wein["menge"] = request.form["menge"]
 
+        # Änderungen in `ausgaben.csv` loggen
+        with open("ausgaben.csv", "a", newline="") as f:
+            csv.writer(f).writerow([
+                datetime.now(), barcode, wein["name"], wein["menge"], 
+                wein["kontingent"], "Bearbeitung", wein["weingut"]
+            ])
+        
         # CSV aktualisieren
         with open("weine.csv", "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["barcode", "name", "jahrgang", "weingut", "kontingent", "menge"])
