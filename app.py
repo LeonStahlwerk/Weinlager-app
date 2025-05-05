@@ -56,7 +56,30 @@ def autosave():
 
 @app.route("/")
 def home():
-    return redirect("/scanform")
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weinlager App</title>
+            </head>
+    <body >
+        <nav >
+            <div >
+                <div>
+                    <a href="/scanform" >Scan</a>
+                    <a href="/admin?pw=1234&tab=verwaltung" >Verwaltung</a>
+                    <a href="/admin?pw=1234&tab=statistik" >Statistik</a>
+                </div>
+            </div>
+        </nav>
+        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
+    </body>
+        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
+    </body>
+    </html>
+    """)
 
 @app.route("/scanform", methods=["GET", "POST"])
 def scanform():
@@ -65,9 +88,15 @@ def scanform():
         return redirect(f"/scan/{barcode}")
     return render_template_string("""
         <h2>Barcode scannen oder eingeben</h2>
-        <form method="post">
-            <input name="barcode" placeholder="Barcode" autofocus>
-            <button type="submit">Weiter</button>
+        <form method="post" >
+            <div>
+                <label for="barcode" >Barcode</label>
+                <input name="barcode" id="barcode" type="text" placeholder="Barcode scannen oder eingeben"
+                        autofocus>
+            </div>
+            <button type="submit" >
+                Weiter
+            </button>
         </form>
     """)
 
@@ -138,6 +167,173 @@ def scan(barcode):
         </form>
     """, wein=wein, kategorien=KATEGORIEN)
 
+if __name__ == "__main__":
+    threading.Thread(target=autosave, daemon=True).start()
+    app.run(debug=True)
+
+# --- ADMIN TABS ---
+
+TAB_HTML = """<div style='margin-bottom:1em'>
+  <a href='/admin?pw=1234&tab=verwaltung'>Verwaltung</a> |
+  <a href='/admin?pw=1234&tab=statistik'>Statistik</a> |
+  <a href='/admin?pw=1234&tab=weingueter'>Weingüter</a>
+</div><hr>"""
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    if request.args.get("pw") != "1234":
+        return "Zugriff verweigert"
+
+    tab = request.args.get("tab", "verwaltung")
+    msg = ""
+
+    if tab == "verwaltung":
+        if request.method == "POST":
+            if "add_kontingent" in request.form:
+                barcode = request.form["barcode"]
+                kontingent = request.form["new_kontingent"]
+                menge = int(request.form["new_menge"])
+
+                # Update CSV with new kontingent entry
+                rows = []
+                with open("weine.csv", newline="") as f:
+                    for row in csv.DictReader(f):
+                        rows.append(row)
+                rows.append({
+                    "barcode": barcode,
+                    "name": "",
+                    "jahrgang": "",
+                    "weingut": "",
+                    "kontingent": kontingent,
+                    "menge": menge
+                })
+                with open("weine.csv", "w", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=["barcode", "name", "jahrgang", "weingut", "kontingent", "menge"])
+                    writer.writeheader()
+                    writer.writerows(rows)
+                msg = f"Kontingent {kontingent} mit {menge} Flaschen hinzugefügt."
+
+            else:
+                with open("weine.csv", "a", newline="") as f:
+                    csv.writer(f).writerow([
+                        request.form["barcode"],
+                        request.form["name"],
+                        request.form["jahrgang"],
+                        request.form["weingut"],
+                        request.form["kontingent"],
+                        request.form["menge"]
+                    ])
+                msg = "Wein gespeichert."
+
+        weine = {}
+        with open("weine.csv", newline="") as f:
+            for row in csv.DictReader(f):
+                code = row["barcode"]
+                if code not in weine:
+                    weine[code] = {
+                        "name": row["name"],
+                        "jahrgang": row["jahrgang"],
+                        "weingut": row["weingut"],
+                        "kontingente": {}
+                    }
+                weine[code]["kontingente"][row["kontingent"]] = row["menge"]
+
+            <table >
+                <thead >
+                    <tr>
+                        <th >Barcode</th>
+                        <th >Name</th>
+                        <th >Jahrgang</th>
+                        <th >Weingut</th>
+                        <th >Kontingente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for code, w in weine.items() %}
+                    <tr class="border-t">
+                        <td >{{ code }}</td>
+                        <td >{{ w['name'] }}</td>
+                        <td >{{ w['jahrgang'] }}</td>
+                        <td >{{ w['weingut'] }}</td>
+                        <td >
+                            <ul>
+                                {% for k, m in w['kontingente'].items() %}
+                                <li>{{ k }}: {{ m }} Flaschen</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href='/download/vorlage.csv'>Gesamte Weine als CSV herunterladen</a>
+        """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
+
+    elif tab == "statistik":
+        return render_template_string("<h2>Statistik</h2><p>Statistiken werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
+
+    elif tab == "weingueter":
+        return render_template_string("<h2>Weingüter</h2><p>Weingüter-Daten werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
+
+    return redirect("/admin?pw=1234&tab=verwaltung")
+
+@app.route("/edit/<barcode>", methods=["GET", "POST"])
+def edit_wine(barcode):
+    # Daten aus der CSV lesen
+    weine = []
+    with open("weine.csv", newline="") as f:
+        weine = list(csv.DictReader(f))
+    
+    # Wein suchen
+    wein = next((row for row in weine if row["barcode"] == barcode), None)
+    if not wein:
+        return "Wein nicht gefunden."
+
+    if request.method == "POST":
+        # Neue Werte aus dem Formular übernehmen
+        wein["name"] = request.form["name"]
+        wein["jahrgang"] = request.form["jahrgang"]
+        wein["weingut"] = request.form["weingut"]
+        wein["kontingent"] = request.form["kontingent"]
+        wein["menge"] = request.form["menge"]
+
+        # Änderungen in `ausgaben.csv` loggen
+        with open("ausgaben.csv", "a", newline="") as f:
+            csv.writer(f).writerow([
+                datetime.now(), barcode, wein["name"], wein["menge"], 
+                wein["kontingent"], "Bearbeitung", wein["weingut"]
+            ])
+        
+        # CSV aktualisieren
+        with open("weine.csv", "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["barcode", "name", "jahrgang", "weingut", "kontingent", "menge"])
+            writer.writeheader()
+            writer.writerows(weine)
+
+        return redirect("/admin?pw=1234&tab=verwaltung")
+
+      return render_template_string(
+        """
+        <h2>Wein bearbeiten</h2>
+        <form method="post">
+            Name: <input name="name" value="{{ wein['name'] }}"><br>
+            Jahrgang: <input name="jahrgang" value="{{ wein['jahrgang'] }}"><br>
+            Weingut: <input name="weingut" value="{{ wein['weingut'] }}"><br>
+            Kontingent: 
+            <select name="kontingent">
+                {% for k in kontingente %}
+                <option value="{{k}}" {% if wein['kontingent'] == k %}selected{% endif %}>{{k}}</option>
+                {% endfor %}
+            </select><br>
+            Menge: <input name="menge" type="number" value="{{ wein['menge'] }}"><br><br>
+            <button type="submit">Speichern</button>
+        </form>
+        <a href='/admin?pw=1234&tab=verwaltung'>Zurück</a>
+        """,
+        wein=wein,
+        kontingente=KONTINGENTE,
+    )
+
 @app.route("/download/vorlage.csv")
 def download_vorlage():
     # Daten aus den CSV-Dateien lesen
@@ -188,7 +384,7 @@ def download_vorlage():
 
     # Übrige Flaschen berechnen
     for barcode, daten in weine.items():
-        daten["übrig"] = daten["gesamt"]
+        daten["übrig"] = daten["gesamt"] - (daten["verkauf"] + daten["winzer"])
 
     # CSV-Datei erstellen
     out_file = "vorlage_export.csv"
@@ -196,7 +392,7 @@ def download_vorlage():
         writer = csv.writer(f, delimiter=";")
         # Kopfzeile schreiben
         writer.writerow([
-            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzal gelieferte Flaschen:",
+            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzahl gelieferte Flaschen:",
             'Gelieferte Flaschen "Freie Ware"', 'Gelieferte Flaschen "Kommisionsware"',
             "Verkaufte Flaschen", "Von Winzern verbrauchte Flaschen", "Übrige Flaschen"
         ])
@@ -210,7 +406,4 @@ def download_vorlage():
 
     # Datei zum Download bereitstellen
     return send_file(out_file, as_attachment=True)
-
-if __name__ == "__main__":
-    threading.Thread(target=autosave, daemon=True).start()
-    app.run(debug=True)
+"""
