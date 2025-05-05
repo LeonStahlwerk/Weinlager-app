@@ -245,4 +245,25 @@ def admin():
             <a href='/download/weine.csv'>📥 Gesamte Weine als CSV</a>
         """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
 
-    # Die anderen Tabs bleiben unverändert
+    elif tab == "statistik":
+        return render_template_string("<h2>Statistik</h2><p>Statistiken werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
+
+    elif tab == "weingueter":
+        return render_template_string("<h2>Weingüter</h2><p>Weingüter-Daten werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
+
+    return redirect("/admin?pw=1234&tab=verwaltung")
+
+@app.route("/download/weine.csv")
+def download_weine():
+    bestand = []
+    with open("weine.csv", newline="") as f:
+        bestand = list(csv.DictReader(f))
+
+    out_file = "weine_statistik.csv"
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Barcode", "Name", "Jahrgang", "Weingut", "Kontingent", "Menge"])
+        for row in bestand:
+            writer.writerow([row["barcode"], row["name"], row["jahrgang"], row["weingut"], row["kontingent"], row["menge"]])
+
+    return send_file(out_file, as_attachment=True)
