@@ -199,71 +199,71 @@ def admin():
 
         return render_template_string("""<h2>Verwaltung</h2>{{ tabs|safe }}<p>{{ msg }}</p>
             <form method="post">
-              Barcode: <input name="barcode"><br>
-              Name: <input name="name"><br>
-              Jahrgang: <input name="jahrgang"><br>
-              Weingut: <input name="weingut"><br>
-              Kontingent: <input name="kontingent"><br>
-              Menge: <input name="menge"><br>
-              <button type="submit">Speichern</button>
+                Barcode: <input name="barcode"><br>
+                Name: <input name="name"><br>
+                Jahrgang: <input name="jahrgang"><br>
+                Weingut: <input name="weingut"><br>
+                Kontingent: <input name="kontingent"><br>
+                Menge: <input name="menge"><br>
+                <button type="submit">Speichern</button>
             </form>
             <h3>Weine</h3>
             <ul>
             {% for code, w in weine.items() %}
-              <li><b>{{ w['name'] }}</b> – {{ w['weingut'] }} ({{ w['jahrgang'] }})
-                <ul>{% for k, m in w['kontingente'].items() %}
-                  <li>{{ k }}: {{ m }} Flaschen</li>
-                {% endfor %}</ul>
-              </li>
+                <li><b>{{ w['name'] }}</b> – {{ w['weingut'] }} ({{ w['jahrgang'] }})
+                    <ul>{% for k, m in w['kontingente'].items() %}
+                        <li>{{ k }}: {{ m }} Flaschen</li>
+                    {% endfor %}</ul>
+                </li>
             {% endfor %}
             </ul>
             <a href='/download/weine.csv'>📥 Gesamte Weine als CSV</a>
         """, msg=msg, weine=weine, tabs=TAB_HTML)
 
-elif tab == "statistik":
-    ausgaben = []
-    bestand = {}
+    elif tab == "statistik":
+        ausgaben = []
+        bestand = {}
 
-    # Bestand aus "weine.csv" laden
-    with open("weine.csv", newline="") as f:
-        for row in csv.DictReader(f):
-            bestand[row["barcode"]] = int(row["menge"])
+        # Bestand aus "weine.csv" laden
+        with open("weine.csv", newline="") as f:
+            for row in csv.DictReader(f):
+                bestand[row["barcode"]] = int(row["menge"])
 
-    # Ausgaben aus "ausgaben.csv" analysieren
-    with open("ausgaben.csv", newline="") as f:
-        ausgaben = list(csv.DictReader(f))
+        # Ausgaben aus "ausgaben.csv" analysieren
+        with open("ausgaben.csv", newline="") as f:
+            ausgaben = list(csv.DictReader(f))
 
-    statistik = {}
-    for row in ausgaben:
-        barcode = row["barcode"]
-        name = row["wein"]
-        if barcode not in statistik:
-            statistik[barcode] = {
-                "name": name,
-                "verkauf": 0,
-                "winzer": 0,
-                "bestand": bestand.get(barcode, 0)
-            }
-        menge = int(row["menge"])
-        kategorie = row["kategorie"]
-        if kategorie == "Verkauf":
-            statistik[barcode]["verkauf"] += menge
-        elif kategorie == "Winzer":
-            statistik[barcode]["winzer"] += menge
+        statistik = {}
+        for row in ausgaben:
+            barcode = row["barcode"]
+            name = row["wein"]
+            if barcode not in statistik:
+                statistik[barcode] = {
+                    "name": name,
+                    "verkauf": 0,
+                    "winzer": 0,
+                    "bestand": bestand.get(barcode, 0)
+                }
+            menge = int(row["menge"])
+            kategorie = row["kategorie"]
+            if kategorie == "Verkauf":
+                statistik[barcode]["verkauf"] += menge
+            elif kategorie == "Winzer":
+                statistik[barcode]["winzer"] += menge
 
-    return render_template_string("""
-    <h2>Statistik</h2>{{ tabs|safe }}
-    <ul>
-    {% for barcode, daten in statistik.items() %}
-        <li>
-            <a href="/wein/{{ barcode }}"><b>{{ daten['name'] }}</b></a>:
-            {{ daten['verkauf'] }} Flaschen verkauft,
-            {{ daten['winzer'] }} Flaschen an Winzer,
-            {{ daten['bestand'] }} Flaschen noch im Bestand
-        </li>
-    {% endfor %}
-    </ul>
-    """, statistik=statistik, tabs=TAB_HTML)
+        return render_template_string("""
+        <h2>Statistik</h2>{{ tabs|safe }}
+        <ul>
+        {% for barcode, daten in statistik.items() %}
+            <li>
+                <a href="/wein/{{ barcode }}"><b>{{ daten['name'] }}</b></a>:
+                {{ daten['verkauf'] }} Flaschen verkauft,
+                {{ daten['winzer'] }} Flaschen an Winzer,
+                {{ daten['bestand'] }} Flaschen noch im Bestand
+            </li>
+        {% endfor %}
+        </ul>
+        """, statistik=statistik, tabs=TAB_HTML)
 
 elif tab == "weingueter":
     ausgaben = []
