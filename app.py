@@ -392,7 +392,7 @@ def download_vorlage():
         writer = csv.writer(f, delimiter=";")
         # Kopfzeile schreiben
         writer.writerow([
-            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzal gelieferte Flaschen:",
+            "Wein Name:", "Jahrgang:", "Weingut:", "Gesamtanzahl gelieferte Flaschen:",
             'Gelieferte Flaschen "Freie Ware"', 'Gelieferte Flaschen "Kommisionsware"',
             "Verkaufte Flaschen", "Von Winzern verbrauchte Flaschen", "Übrige Flaschen"
         ])
