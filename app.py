@@ -239,42 +239,34 @@ def admin():
                     }
                 weine[code]["kontingente"][row["kontingent"]] = row["menge"]
 
-        return render_template_string("""<h2>Verwaltung</h2>{{ tabs|safe }}<p>{{ msg }}</p>
-            <form method="post">
-              Barcode: <input name="barcode"><br>
-              Name: <input name="name"><br>
-              Jahrgang: <input name="jahrgang"><br>
-              Weingut: <input name="weingut"><br>
-              Kontingent: 
-              <select name="kontingent">
-                {% for k in kontingente %}<option>{{k}}</option>{% endfor %}
-              </select><br>
-              Menge: <input name="menge"><br>
-              <button type="submit">Speichern</button>
-            </form>
-            <h3>Weine</h3>
-            <ul>
-            {% for code, w in weine.items() %}
-              <li><b>{{ w['name'] }}</b> – {{ w['weingut'] }} ({{ w['jahrgang'] }})
+       <table class="min-w-full bg-white rounded-lg shadow-md">
+    <thead class="bg-gray-200">
+        <tr>
+            <th class="px-6 py-3 text-left text-gray-700 font-medium">Barcode</th>
+            <th class="px-6 py-3 text-left text-gray-700 font-medium">Name</th>
+            <th class="px-6 py-3 text-left text-gray-700 font-medium">Jahrgang</th>
+            <th class="px-6 py-3 text-left text-gray-700 font-medium">Weingut</th>
+            <th class="px-6 py-3 text-left text-gray-700 font-medium">Kontingente</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for code, w in weine.items() %}
+        <tr class="border-t">
+            <td class="px-6 py-4">{{ code }}</td>
+            <td class="px-6 py-4">{{ w['name'] }}</td>
+            <td class="px-6 py-4">{{ w['jahrgang'] }}</td>
+            <td class="px-6 py-4">{{ w['weingut'] }}</td>
+            <td class="px-6 py-4">
                 <ul>
-                  {% for k, m in w['kontingente'].items() %}
+                    {% for k, m in w['kontingente'].items() %}
                     <li>{{ k }}: {{ m }} Flaschen</li>
-                  {% endfor %}
+                    {% endfor %}
                 </ul>
-                <form method="post" style="display:inline">
-                  <input type="hidden" name="barcode" value="{{ code }}">
-                  <select name="new_kontingent">
-                    {% for k in kontingente %}<option>{{k}}</option>{% endfor %}
-                  </select>
-                  <input type="number" name="new_menge" placeholder="Menge">
-                  <button type="submit" name="add_kontingent">Kontingent hinzufügen</button>
-                </form>
-                <form method="get" action="/edit/{{ code }}" style="display:inline">
-                  <button type="submit">Bearbeiten</button>
-                </form>
-              </li>
-            {% endfor %}
-            </ul>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
             <a href='/download/vorlage.csv'>📥 Gesamte Weine als CSV</a>
         """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
 
