@@ -265,28 +265,6 @@ elif tab == "statistik":
     </ul>
     """, statistik=statistik, tabs=TAB_HTML)
 
-        return render_template_string("""<h2>Statistik</h2>{{ tabs|safe }}
-        <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
-        {% for code, daten in statistik.items() %}
-          <div style='margin-bottom:40px;'>
-            <h3><a href="/wein/{{code}}">{{ code }}</a> – {{ daten['gesamt'] }} Flaschen</h3>
-            <canvas id="c{{loop.index}}" width="300" height="150"></canvas>
-            <script>
-              new Chart(document.getElementById("c{{loop.index}}"), {
-                type: 'pie',
-                data: {
-                  labels: {{ daten['kategorien'].keys()|list }},
-                  datasets: [{
-                    data: {{ daten['kategorien'].values()|list }},
-                    backgroundColor: ['#007bff', '#28a745']
-                  }]
-                }
-              });
-            </script>
-          </div>
-        {% endfor %}
-        """, statistik=statistik, tabs=TAB_HTML)
-
     elif tab == "weingueter":
         ausgaben = []
         with open("ausgaben.csv", newline="") as f:
