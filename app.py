@@ -56,7 +56,20 @@ def autosave():
 
 @app.route("/")
 def home():
-    return redirect("/scanform")
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weinlager App</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 text-gray-800">
+        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
+    </body>
+    </html>
+    """)
 
 @app.route("/scanform", methods=["GET", "POST"])
 def scanform():
