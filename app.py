@@ -239,6 +239,9 @@ def admin():
                   <input type="number" name="new_menge" placeholder="Menge">
                   <button type="submit" name="add_kontingent">Kontingent hinzufügen</button>
                 </form>
+                <form method="get" action="/edit/{{ code }}" style="display:inline">
+                  <button type="submit">Bearbeiten</button>
+                </form>
               </li>
             {% endfor %}
             </ul>
