@@ -18,7 +18,7 @@ for file, header in [
         with open(file, "w", newline="") as f:
             csv.writer(f).writerow(header)
 
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_OWNER = "LeonStahlwerk"
 REPO_NAME = "Weinlager-app"
 FILES = ["weine.csv", "ausgaben.csv"]
@@ -63,21 +63,20 @@ def home():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Weinlager App</title>
-            </head>
-    <body >
-        <nav >
-            <div >
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 text-gray-800">
+        <nav class="bg-blue-500 p-4 text-white">
+            <div class="container mx-auto flex justify-between">
                 <div>
-                    <a href="/scanform" >Scan</a>
-                    <a href="/admin?pw=1234&tab=verwaltung" >Verwaltung</a>
-                    <a href="/admin?pw=1234&tab=statistik" >Statistik</a>
+                    <a href="/scanform" class="mr-4 hover:underline">Scan</a>
+                    <a href="/admin?pw=1234&tab=verwaltung" class="mr-4 hover:underline">Verwaltung</a>
+                    <a href="/admin?pw=1234&tab=statistik" class="hover:underline">Statistik</a>
                 </div>
             </div>
         </nav>
-        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
-    </body>
-        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
-    </body>
+        </body>
+        </body>
     </html>
     """)
 
@@ -88,13 +87,13 @@ def scanform():
         return redirect(f"/scan/{barcode}")
     return render_template_string("""
         <h2>Barcode scannen oder eingeben</h2>
-        <form method="post" >
+        <form method="post" class="space-y-4 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mt-10">
             <div>
-                <label for="barcode" >Barcode</label>
+                <label for="barcode" class="block text-gray-700 font-medium">Barcode</label>
                 <input name="barcode" id="barcode" type="text" placeholder="Barcode scannen oder eingeben"
-                        autofocus>
+                       class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" autofocus>
             </div>
-            <button type="submit" >
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                 Weiter
             </button>
         </form>
@@ -238,32 +237,28 @@ def admin():
                     }
                 weine[code]["kontingente"][row["kontingent"]] = row["menge"]
 
-return render_template_string("""
-
-            <table >
-                <thead >
+            <table class="min-w-full bg-white rounded-lg shadow-md">
+                <thead class="bg-gray-200">
                     <tr>
-                        <th >Barcode</th>
-                        <th >Name</th>
-                        <th >Jahrgang</th>
-                        <th >Weingut</th>
-                        <th >Kontingente</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Barcode</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Name</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Jahrgang</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Weingut</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Kontingente</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for code, w in weine.items() %}
                     <tr class="border-t">
-                        <td >{{ code }}</td>
-                        <td >{{ w['name'] }}</td>
-                        <td >{{ w['jahrgang'] }}</td>
-                        <td >{{ w['weingut'] }}</td>
-                        <td >
+                        <td class="px-6 py-4">{{ code }}</td>
+                        <td class="px-6 py-4">{{ w['name'] }}</td>
+                        <td class="px-6 py-4">{{ w['jahrgang'] }}</td>
+                        <td class="px-6 py-4">{{ w['weingut'] }}</td>
+                        <td class="px-6 py-4">
                             <ul>
                                 {% for k, m in w['kontingente'].items() %}
                                 <li>{{ k }}: {{ m }} Flaschen</li>
                                 {% endfor %}
-""", weine=weine)
-
                             </ul>
                         </td>
                     </tr>
@@ -274,10 +269,10 @@ return render_template_string("""
         """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
 
     elif tab == "statistik":
-        return render_template_string("<h2>Statistik</h2><p>Statistiken werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
+      return render_template_string("<h2>Statistik</h2><p>Statistiken werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
 
     elif tab == "weingueter":
-        return render_template_string("<h2>Weingüter</h2><p>Weingüter-Daten werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
+      return render_template_string("<h2>Weingüter</h2><p>Weingüter-Daten werden hier angezeigt.</p>{{ tabs|safe }}", tabs=TAB_HTML)
 
     return redirect("/admin?pw=1234&tab=verwaltung")
 
@@ -316,7 +311,7 @@ def edit_wine(barcode):
 
         return redirect("/admin?pw=1234&tab=verwaltung")
 
-      return render_template_string(
+    return render_template_string(
         """
         <h2>Wein bearbeiten</h2>
         <form method="post">
@@ -410,4 +405,3 @@ def download_vorlage():
 
     # Datei zum Download bereitstellen
     return send_file(out_file, as_attachment=True)
-"""
