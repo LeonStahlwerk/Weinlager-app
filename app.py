@@ -239,34 +239,34 @@ def admin():
                     }
                 weine[code]["kontingente"][row["kontingent"]] = row["menge"]
 
-       <table class="min-w-full bg-white rounded-lg shadow-md">
-    <thead class="bg-gray-200">
-        <tr>
-            <th class="px-6 py-3 text-left text-gray-700 font-medium">Barcode</th>
-            <th class="px-6 py-3 text-left text-gray-700 font-medium">Name</th>
-            <th class="px-6 py-3 text-left text-gray-700 font-medium">Jahrgang</th>
-            <th class="px-6 py-3 text-left text-gray-700 font-medium">Weingut</th>
-            <th class="px-6 py-3 text-left text-gray-700 font-medium">Kontingente</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for code, w in weine.items() %}
-        <tr class="border-t">
-            <td class="px-6 py-4">{{ code }}</td>
-            <td class="px-6 py-4">{{ w['name'] }}</td>
-            <td class="px-6 py-4">{{ w['jahrgang'] }}</td>
-            <td class="px-6 py-4">{{ w['weingut'] }}</td>
-            <td class="px-6 py-4">
-                <ul>
-                    {% for k, m in w['kontingente'].items() %}
-                    <li>{{ k }}: {{ m }} Flaschen</li>
+            <table class="min-w-full bg-white rounded-lg shadow-md">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Barcode</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Name</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Jahrgang</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Weingut</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-medium">Kontingente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for code, w in weine.items() %}
+                    <tr class="border-t">
+                        <td class="px-6 py-4">{{ code }}</td>
+                        <td class="px-6 py-4">{{ w['name'] }}</td>
+                        <td class="px-6 py-4">{{ w['jahrgang'] }}</td>
+                        <td class="px-6 py-4">{{ w['weingut'] }}</td>
+                        <td class="px-6 py-4">
+                            <ul>
+                                {% for k, m in w['kontingente'].items() %}
+                                <li>{{ k }}: {{ m }} Flaschen</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
                     {% endfor %}
-                </ul>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                </tbody>
+            </table>
             <a href='/download/vorlage.csv'>📥 Gesamte Weine als CSV</a>
         """, msg=msg, weine=weine, tabs=TAB_HTML, kontingente=KONTINGENTE)
 
