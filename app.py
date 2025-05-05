@@ -66,6 +66,17 @@ def home():
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-100 text-gray-800">
+        <nav class="bg-blue-500 p-4 text-white">
+            <div class="container mx-auto flex justify-between">
+                <div>
+                    <a href="/scanform" class="mr-4 hover:underline">Scan</a>
+                    <a href="/admin?pw=1234&tab=verwaltung" class="mr-4 hover:underline">Verwaltung</a>
+                    <a href="/admin?pw=1234&tab=statistik" class="hover:underline">Statistik</a>
+                </div>
+            </div>
+        </nav>
+        <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
+    </body>
         <h1 class="text-3xl font-bold text-center mt-10">Willkommen zur Weinlager App</h1>
     </body>
     </html>
