@@ -318,3 +318,57 @@ def download_log(barcode):
             if row["barcode"] == barcode:
                 writer.writerow(row)
     return send_file(out, as_attachment=True)
+@app.route("/download/weine.csv")
+def download_weine():
+    # Daten aus den CSV-Dateien laden
+    bestand = []
+    ausgaben = []
+
+    # "weine.csv" lesen
+    with open("weine.csv", newline="") as f:
+        bestand = list(csv.DictReader(f))
+
+    # "ausgaben.csv" lesen
+    with open("ausgaben.csv", newline="") as f:
+        ausgaben = list(csv.DictReader(f))
+
+    # Statistiken berechnen
+    gesamt_fl = sum(int(row["menge"]) for row in bestand)
+    kontingent_statistik = {}
+    for row in bestand:
+        kontingent = row["kontingent"]
+        menge = int(row["menge"])
+        kontingent_statistik[kontingent] = kontingent_statistik.get(kontingent, 0) + menge
+
+    winzer_fl = sum(int(row["menge"]) for row in ausgaben if row["kategorie"] == "Winzer")
+    verkauf_fl = sum(int(row["menge"]) for row in ausgaben if row["kategorie"] == "Verkauf")
+
+    # Verbleibender Bestand berechnen
+    verbleibend = {}
+    for row in bestand:
+        barcode = row["barcode"]
+        original_menge = int(row["menge"])
+        ausgegeben = sum(int(a["menge"]) for a in ausgaben if a["barcode"] == barcode)
+        verbleibend[barcode] = original_menge - ausgegeben
+
+    # CSV-Datei erstellen
+    out_file = "weine_statistik.csv"
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        # Kopfzeile hinzufügen
+        writer.writerow(["Gesamtanzahl Flaschen", gesamt_fl])
+        writer.writerow([])
+        writer.writerow(["Kontingent", "Anzahl Flaschen"])
+        for kontingent, menge in kontingent_statistik.items():
+            writer.writerow([kontingent, menge])
+        writer.writerow([])
+        writer.writerow(["An Winzer ausgegeben", winzer_fl])
+        writer.writerow(["Im Verkauf ausgegeben", verkauf_fl])
+        writer.writerow([])
+        writer.writerow(["Verbleibender Bestand"])
+        writer.writerow(["Barcode", "Übrig"])
+        for barcode, menge in verbleibend.items():
+            writer.writerow([barcode, menge])
+
+    # Datei zum Download bereitstellen
+    return send_file(out_file, as_attachment=True)
