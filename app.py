@@ -238,6 +238,7 @@ def admin():
                   </select>
                   <input type="number" name="new_menge" placeholder="Menge">
                   <button type="submit" name="add_kontingent">Kontingent hinzufügen</button>
+                  <button onclick="if(confirm('Bist du sicher?')) { window.location.href='/edit/{{ code }}'; }">Bearbeiten</button>
                 </form>
               </li>
             {% endfor %}
@@ -325,3 +326,50 @@ def download_vorlage():
 
     # Datei zum Download bereitstellen
     return send_file(out_file, as_attachment=True)
+    
+    @app.route("/edit/<barcode>", methods=["GET", "POST"])
+def edit(barcode):
+    weine = {}
+    with open("weine.csv", newline="") as f:
+        for row in csv.DictReader(f):
+            if row["barcode"] == barcode:
+                wein = row
+                break
+        else:
+            return f"<h3>Wein {barcode} nicht gefunden.</h3><a href='/admin?tab=verwaltung'>Zurück</a>"
+    
+    if request.method == "POST":
+        # Update CSV mit neuen Werten
+        wein["name"] = request.form["name"]
+        wein["jahrgang"] = request.form["jahrgang"]
+        wein["weingut"] = request.form["weingut"]
+        wein["kontingent"] = request.form["kontingent"]
+        wein["menge"] = request.form["menge"]
+        
+        rows = []
+        with open("weine.csv", newline="") as f:
+            for row in csv.DictReader(f):
+                if row["barcode"] == barcode:
+                    rows.append(wein)
+                else:
+                    rows.append(row)
+
+        with open("weine.csv", "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["barcode", "name", "jahrgang", "weingut", "kontingent", "menge"])
+            writer.writeheader()
+            writer.writerows(rows)
+        
+        return redirect("/admin?tab=verwaltung")
+    
+    return render_template_string("""
+        <h2>Wein bearbeiten: {{ wein['name'] }}</h2>
+        <form method="post">
+            Name: <input name="name" value="{{ wein['name'] }}"><br>
+            Jahrgang: <input name="jahrgang" value="{{ wein['jahrgang'] }}"><br>
+            Weingut: <input name="weingut" value="{{ wein['weingut'] }}"><br>
+            Kontingent: <input name="kontingent" value="{{ wein['kontingent'] }}"><br>
+            Menge: <input name="menge" value="{{ wein['menge'] }}"><br>
+            <button type="submit">Speichern</button>
+        </form>
+        <a href='/admin?tab=verwaltung'>Zurück</a>
+    """, wein=wein)
