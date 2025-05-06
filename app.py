@@ -345,6 +345,12 @@ def edit(barcode):
         wein["weingut"] = request.form["weingut"]
         wein["kontingent"] = request.form["kontingent"]
         wein["menge"] = request.form["menge"]
+
+        # Änderungen loggen
+with open("änderungen.csv", "a", newline="") as log:
+    csv.writer(log).writerow([
+        datetime.now(), barcode, "Bearbeiten", wein["name"], wein["jahrgang"], wein["weingut"], wein["kontingent"], wein["menge"]
+    ])
         
         rows = []
         with open("weine.csv", newline="") as f:
